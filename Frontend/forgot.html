@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Forgot Password</title>
+<link rel="stylesheet" href="auth.css">
+</head>
+<body>
+
+<div class="auth-wrapper">
+  <div class="auth-card">
+
+    <h2>Forgot Password</h2>
+    <p class="subtitle">
+      Enter your username and we’ll help you reset your password.
+    </p>
+
+    <input
+      id="username"
+      class="input"
+      placeholder="Enter username"
+      autocomplete="username"
+    />
+
+    <p id="message" class="message" style="padding-bottom: 4mm;"></p>
+
+    <button class="btn-primary" onclick="requestReset()">
+      Send Reset Link
+    </button>
+
+    <div class="links">
+      <a href="login.html">Back to Login</a>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const API = "http://localhost:8000";
+
+async function requestReset() {
+  const username = document.getElementById("username").value.trim();
+  const msg = document.getElementById("message");
+
+  msg.innerText = "";
+  msg.className = "message";
+
+  if (!username) {
+    msg.innerText = "Please enter your username";
+    msg.classList.add("error");
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API}/forgot-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username })
+    });
+
+    msg.classList.add("success");
+    msg.innerText =
+      "If this account exists, a reset link has been sent.";
+
+  } catch {
+    msg.classList.add("error");
+    msg.innerText = "Server not reachable";
+  }
+}
+</script>
+
+</body>
+</html>

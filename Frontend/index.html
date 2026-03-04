@@ -1,0 +1,268 @@
+<!doctype html>
+<html>
+  <head>
+    <title>API Store</title>
+    <link rel="stylesheet" href="index-style.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+    />
+  </head>
+  <body>
+    <header class="navbar">
+      <h2 class="logo">API Store</h2>
+
+      <div class="nav-actions">
+        <button class="logout" onclick="logout()">Logout</button>
+        <button class="cart-btn" onclick="openCart()">
+          <i class="fa-solid fa-cart-shopping"></i>
+          <span id="cartCount">0</span>
+        </button>
+      </div>
+    </header>
+
+    <main class="content">
+      <h3>Products</h3>
+
+      <div class="products">
+        <div class="product">
+          <h4>Developer Laptop</h4>
+          <p>$1299</p>
+          <button onclick="addToCart(1, 'Developer Laptop', 1299)">
+            Add to Cart
+          </button>
+        </div>
+
+        <div class="product">
+          <h4>Mechanical Keyboard</h4>
+          <p>$149</p>
+          <button onclick="addToCart(2, 'Mechanical Keyboard', 149)">
+            Add to Cart
+          </button>
+        </div>
+
+        <div class="product">
+          <h4>Pro Headphones</h4>
+          <p>$299</p>
+          <button onclick="addToCart(3, 'Pro Headphones', 299)">
+            Add to Cart
+          </button>
+        </div>
+      </div>
+    </main>
+
+    <!-- Overlay -->
+    <div id="overlay" onclick="closeCart()"></div>
+
+    <!-- Cart -->
+    <aside id="cart">
+      <div class="cart-header">
+        <h3>Shopping Cart</h3>
+        <button onclick="closeCart()">x</button>
+      </div>
+
+      <div class="cart-items" id="cartItems"></div>
+
+      <div class="cart-footer">
+        <div class="subtotal">
+          <span>Subtotal</span>
+          <strong id="subtotal">$0.00</strong>
+        </div>
+        <button class="checkout" onclick="openCheckout()">
+          Proceed to Checkout
+        </button>
+      </div>
+    </aside>
+
+    <div id="checkoutModal" class="checkout-modal">
+      <div class="checkout-header">
+        <h3>Secure Checkout</h3>
+        <button onclick="closeCheckout()">x</button>
+      </div>
+
+      <div class="checkout-body">
+        <input type="text" placeholder="Full Name" class="checkout-input" />
+        <input
+          type="text"
+          placeholder="Shipping Address"
+          class="checkout-input"
+        />
+        <input type="text" placeholder="Card Number" class="checkout-input" />
+        <div class="checkout-total">
+          Amount Due: <span id="checkoutTotal">$0.00</span>
+        </div>
+      </div>
+
+      <div class="checkout-footer">
+        <button class="pay-btn" onclick="processPayment()">Pay Now</button>
+      </div>
+    </div>
+
+    <script>
+      const API = "http://localhost:8000";
+      let cart = [];
+
+      // 🔐 Protect the page: Redirect to login if no token exists
+      if (!localStorage.getItem("token")) {
+        window.location.href = "login.html";
+      }
+
+      /* Open / Close Cart UI */
+      function openCart() {
+        document.getElementById("cart").classList.add("show");
+        document.getElementById("overlay").classList.add("show");
+      }
+
+      function closeCart() {
+        document.getElementById("cart").classList.remove("show");
+        document.getElementById("overlay").classList.remove("show");
+      }
+
+      /* --- CHECKOUT FUNCTIONS --- */
+      function openCheckout() {
+        if (cart.length === 0) {
+          alert("Your cart is empty!");
+          return;
+        }
+
+        // 1. Close the cart menu, but keep the dark overlay
+        document.getElementById("cart").classList.remove("show");
+
+        // 2. Grab the total price from the cart and put it in the checkout modal
+        const currentTotal = document.getElementById("subtotal").innerText;
+        document.getElementById("checkoutTotal").innerText = currentTotal;
+
+        // 3. Show the checkout popup
+        document.getElementById("checkoutModal").classList.add("show");
+
+        // 4. Temporarily make the dark overlay close the checkout instead of the cart
+        document
+          .getElementById("overlay")
+          .setAttribute("onclick", "closeCheckout()");
+      }
+
+      function closeCheckout() {
+        // Hide popup and overlay
+        document.getElementById("checkoutModal").classList.remove("show");
+        document.getElementById("overlay").classList.remove("show");
+
+        // Reset the overlay so it closes the cart next time
+        document
+          .getElementById("overlay")
+          .setAttribute("onclick", "closeCart()");
+      }
+
+      function processPayment() {
+        alert("Payment successful! Thank you for your order.");
+        closeCheckout();
+      }
+
+      /* 1. Load Cart from Server */
+      async function loadCartFromServer() {
+        const token = localStorage.getItem("token");
+        try {
+          const res = await fetch(API + "/cart", {
+            headers: { Authorization: "Bearer " + token },
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+
+            // FIX: Map 'product_name' and 'quantity' from the backend
+            cart = data.map((item) => ({
+              id: item.id,
+              name: item.product_name, // Changed from item.name
+              price: item.price,
+              qty: item.quantity, // Changed from item.qty
+            }));
+
+            renderCart();
+          }
+        } catch (error) {
+          console.error("Failed to load cart", error);
+        }
+      }
+
+      /* 2. Add Item to Server */
+      async function addToCart(id, name, price) {
+        const token = localStorage.getItem("token");
+
+        // Encode the name so spaces don't break the URL
+        const safeName = encodeURIComponent(name);
+
+        await fetch(`${API}/cart/add?name=${safeName}&price=${price}`, {
+          method: "POST",
+          headers: { Authorization: "Bearer " + token },
+        });
+
+        // openCart();
+        loadCartFromServer();
+      }
+
+      /* 3. Change Quantity (+ / - buttons) */
+      async function changeQty(itemId, delta) {
+        const token = localStorage.getItem("token");
+        await fetch(`${API}/cart/update?item_id=${itemId}&delta=${delta}`, {
+          method: "POST",
+          headers: { Authorization: "Bearer " + token },
+        });
+
+        loadCartFromServer(); // Refresh the data
+      }
+
+      /* Update Badge Number */
+      function updateBadge() {
+        const count = cart.reduce((sum, item) => sum + item.qty, 0);
+        document.getElementById("cartCount").innerText = count;
+      }
+
+      /* Render HTML for Cart Items */
+      function renderCart() {
+        const container = document.getElementById("cartItems");
+        const subtotalEl = document.getElementById("subtotal");
+
+        container.innerHTML = "";
+        let subtotal = 0;
+
+        if (cart.length === 0) {
+          container.innerHTML = "<p>Your cart is empty</p>";
+          subtotalEl.innerText = "$0.00";
+          updateBadge();
+          return;
+        }
+
+        cart.forEach((item) => {
+          subtotal += item.price * item.qty;
+
+          container.innerHTML += `
+            <div class="cart-item">
+              <div>
+                <div>${item.name}</div>
+                <small>$${item.price}</small>
+              </div>
+
+              <div class="qty">
+                <button onclick="changeQty(${item.id}, -1)">-</button>
+                <span>${item.qty}</span>
+                <button onclick="changeQty(${item.id}, 1)">+</button>
+              </div>
+            </div>
+          `;
+        });
+
+        subtotalEl.innerText = "$" + subtotal.toFixed(2);
+        updateBadge();
+      }
+
+      /* Logout */
+      function logout() {
+        localStorage.removeItem("token");
+        cart = [];
+        window.location.href = "login.html";
+      }
+
+      // Initialize the page by loading the database cart
+      loadCartFromServer();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Login</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="card">
+      <h2>Login</h2>
+
+      <input id="username" placeholder="Enter username" />
+      <input id="password" type="password" placeholder="Enter password" />
+
+      <p class="error" id="error"></p>
+
+      <button class="primary" onclick="login()">Login</button>
+
+      <div class="text-center">OR</div>
+
+      <button class="secondary" onclick="goRegister()">Sign Up</button>
+
+      <div style="text-align: right; padding-top: 5mm;">
+        <a href="forgot.html" class="forgot">Forgot Password?</a>
+      </div>
+    </div>
+
+    <script>
+      const API = "http://localhost:8000";
+
+      if (localStorage.getItem("token")) {
+        window.location.href = "index.html";
+      }
+
+      async function login() {
+        const res = await fetch(API + "/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            username: username.value,
+            password: password.value,
+          }),
+        });
+
+        if (!res.ok) {
+          error.innerText = "Invalid username or password";
+          return;
+        }
+
+        const data = await res.json();
+        localStorage.setItem("token", data.access_token);
+        window.location.href = "index.html";
+      }
+
+      function goRegister() {
+        window.location.href = "register.html";
+      }
+
+      function goForgot() {
+        window.location.href = "forgot.html";
+      }
+    </script>
+  </body>
+</html>

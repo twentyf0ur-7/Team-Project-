@@ -1,0 +1,37 @@
+<div class="card">
+  <h2>New Password</h2>
+
+  <input id="password" type="password" placeholder="New password" />
+  <input id="confirm" type="password" placeholder="Confirm password" />
+  <p id="error"></p>
+
+  <button onclick="reset()">Reset Password</button>
+</div>
+
+<script>
+  const API = "http://localhost:8000";
+  const token = new URLSearchParams(window.location.search).get("token");
+
+  async function reset() {
+    const password = password.value;
+    const confirm = confirm.value;
+    const error = document.getElementById("error");
+
+    if (password !== confirm) {
+      error.innerText = "Passwords do not match";
+      return;
+    }
+
+    const res = await fetch(`${API}/reset-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, password }),
+    });
+
+    if (res.ok) {
+      window.location.href = "login.html";
+    } else {
+      error.innerText = "Reset failed";
+    }
+  }
+</script>

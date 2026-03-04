@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Sign Up</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="card">
+      <h2>Sign Up</h2>
+
+      <input id="username" placeholder="Username" />
+      <input id="password" type="password" placeholder="Password" />
+      <input id="confirm" type="password" placeholder="Confirm Password" />
+      <p id="error" class="error"></p>
+
+      <button class="primary" onclick="register()">Sign Up</button>
+
+      <div class="text-center">
+        Already have an account?
+        <a href="login.html">Login</a>
+      </div>
+
+      <p class="error" id="error"></p>
+    </div>
+
+    <script>
+      const API = "http://localhost:8000";
+
+      async function register() {
+        const username = document.getElementById("username").value.trim();
+        const password = document.getElementById("password").value;
+        const confirm = document.getElementById("confirm").value;
+        const error = document.getElementById("error");
+
+        error.innerText = "";
+
+        if (!username || !password || !confirm) {
+          error.innerText = "All fields are required";
+          return;
+        }
+
+        if (password !== confirm) {
+          error.innerText = "Passwords do not match";
+          shake();
+          return;
+        }
+
+        try {
+          const res = await fetch(`${API}/register`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username, password }),
+          });
+
+          const data = await res.json();
+
+          if (!res.ok) {
+            error.innerText = data.detail || "Registration failed";
+            shake();
+            return;
+          }
+
+          window.location.href = "login.html";
+        } catch (err) {
+          error.innerText = "Server not reachable";
+        }
+      }
+
+      function shake() {
+        const card = document.querySelector(".card");
+        card.classList.add("shake");
+        setTimeout(() => card.classList.remove("shake"), 400);
+      }
+    </script>
+  </body>
+</html>
